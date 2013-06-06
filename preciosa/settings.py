@@ -31,7 +31,7 @@ TIME_ZONE = "UTC"
 
 # Language code for this installation. All choices can be found here:
 # http://www.i18nguy.com/unicode/language-identifiers.html
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "es-AR"
 
 SITE_ID = 1
 
@@ -125,19 +125,21 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    
+
     # theme
     "pinax_theme_bootstrap_account",
     "pinax_theme_bootstrap",
     "django_forms_bootstrap",
-    
+
     # external
     "account",
     "metron",
     "eventlog",
-    
+    "treebeard",
+    "django_extensions",
+
     # project
-    "preciosa",
+    "preciosa.precios",
 ]
 
 # A sample logging configuration. The only tangible logging
