@@ -13,6 +13,11 @@ class Categoria(MP_Node):
     nombre = models.CharField(max_length=100)
     node_order_by = ['nombre']
 
+    def reload(self):
+        if self.id:
+            return Categoria.objects.get(pk=self.id)
+        return self
+
     def __unicode__(self):
         return self.nombre
 
