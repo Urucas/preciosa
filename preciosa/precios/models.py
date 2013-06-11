@@ -101,6 +101,9 @@ class Ciudad(models.Model):
     nombre = models.CharField(max_length=100)
     provincia = models.CharField(max_length=100, choices=PROVINCIAS)
 
+    def __unicode__(self):
+        return self.nombre + ', ' + self.provincia
+
     class Meta:
         unique_together = (('nombre', 'provincia'))
 
