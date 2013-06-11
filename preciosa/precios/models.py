@@ -111,13 +111,14 @@ class Ciudad(models.Model):
 class Sucursal(models.Model):
     nombre = models.CharField(max_length=100, null=True, blank=True,
                               help_text="Denominación común. Ej: Jumbo de Alberdi")
-    direccion = models.CharField(max_length=100, unique=True)
+    direccion = models.CharField(max_length=120)
     # ciudad deberia ser estandarizado, usando algo como django-cities-light
     ciudad = models.ForeignKey('Ciudad')
     cp = models.CharField(max_length=100, null=True, blank=True)
     telefono = models.CharField(max_length=100, null=True, blank=True)
     horarios = models.TextField(null=True, blank=True)
-    cadena = models.ForeignKey('Cadena', null=True, blank=True,
+    cadena = models.ForeignKey('Cadena', related_name='sucursales',
+                               null=True, blank=True,
                                help_text='Dejar en blanco si es un comercio único')
 
     def clean(self):
@@ -125,7 +126,7 @@ class Sucursal(models.Model):
             raise models.ValidationError('Indique la cadena o el nombre del comercio')
 
     def __unicode__(self):
-        return "%s (%s)" % (self.cadena or self.nombre, self.direccion)
+        return u"%s (%s)" % (self.cadena or self.nombre, self.direccion)
 
     class Meta:
         unique_together = (('direccion', 'ciudad'))
