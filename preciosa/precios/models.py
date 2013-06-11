@@ -19,6 +19,8 @@ class Categoria(MP_Node):
         return self
 
     def __unicode__(self):
+        if not self.is_root():
+            return unicode(self.get_parent()) + " > " + self.nombre
         return self.nombre
 
 
