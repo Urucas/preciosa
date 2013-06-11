@@ -56,13 +56,16 @@ class Marca(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     logo = models.ImageField(null=True, blank=True,
                              upload_to=os.path.join(settings.MEDIA_ROOT, 'marcas'))
-    empresa = models.ForeignKey('Empresa', null=True, blank=True)
+    fabricante = models.ForeignKey('EmpresaFabricante', null=True, blank=True)
 
     def __unicode__(self):
         return self.nombre
 
+    class Meta:
+        unique_together = (('nombre', 'fabricante'))
 
-class Empresa(models.Model):
+
+class AbstractEmpresa(models.Model):
     nombre = models.CharField(max_length=100, unique=True)
     logo = models.ImageField(null=True, blank=True,
                              upload_to=os.path.join(settings.MEDIA_ROOT, 'empresas'))
@@ -70,15 +73,49 @@ class Empresa(models.Model):
     def __unicode__(self):
         return self.nombre
 
+    class Meta:
+        abstract = True
 
-class Cadena(Empresa):
-    cadena_madre = models.ForeignKey('self', null=True, blank=True)
+
+class Cadena(AbstractEmpresa):
+    """Cadena de supermercados. Por ejemplo Walmart"""
+
+    cadena_madre = models.ForeignKey('self', null=True, blank=True,
+                                     help_text="Jumbo y Vea son de Cencosud")
 
 
-class LocalComercial(models.Model):
-    nombre = models.CharField(max_length=100, null=True, blank=True)
+class EmpresaFabricante(AbstractEmpresa):
+    pass
+
+
+class Ciudad(models.Model):
+    PROVINCIAS = Choices('Buenos Aires', 'Catamarca', 'Chaco', 'Chubut',
+                         'Ciudad Autónoma de Buenos Aires', 'Córdoba',
+                         'Corrientes', 'Entre Ríos', 'Formosa', 'Jujuy', 'La Pampa',
+                         'La Rioja', 'Mendoza', 'Misiones', 'Neuquén', 'Río Negro',
+                         'Salta', 'San Juan', 'San Luis', 'Santa Cruz', 'Santa Fe',
+                         'Santiago del Estero',
+                         'Tierra del Fuego, Antártida e Islas del Atlántico Sur',
+                         'Tucumán')
+
+    nombre = models.CharField(max_length=100)
+    provincia = models.CharField(max_length=100, choices=PROVINCIAS)
+
+    class Meta:
+        unique_together = (('nombre', 'provincia'))
+
+
+class Sucursal(models.Model):
+    nombre = models.CharField(max_length=100, null=True, blank=True,
+                              help_text="Denominación común. Ej: Jumbo de Alberdi")
     direccion = models.CharField(max_length=100, unique=True)
-    cadena = models.ForeignKey('Cadena', null=True, blank=True)
+    # ciudad deberia ser estandarizado, usando algo como django-cities-light
+    ciudad = models.ForeignKey('Ciudad')
+    cp = models.CharField(max_length=100, null=True, blank=True)
+    telefono = models.CharField(max_length=100, null=True, blank=True)
+    horarios = models.TextField(null=True, blank=True)
+    cadena = models.ForeignKey('Cadena', null=True, blank=True,
+                               help_text='Dejar en blanco si es un comercio único')
 
     def clean(self):
         if not self.cadena and not self.nombre:
@@ -87,10 +124,13 @@ class LocalComercial(models.Model):
     def __unicode__(self):
         return "%s (%s)" % (self.cadena or self.nombre, self.direccion)
 
+    class Meta:
+        unique_together = (('direccion', 'ciudad'))
+
 
 class Precio(TimeStampedModel):
     producto = models.ForeignKey('Producto')
-    local = models.ForeignKey('LocalComercial')
+    sucursal = models.ForeignKey('Sucursal')
     precio = models.DecimalField(max_digits=8, decimal_places=2)
     usuario = models.ForeignKey(User, null=True, blank=True)
 
