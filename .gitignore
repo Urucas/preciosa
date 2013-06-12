@@ -1,3 +1,6 @@
+# preciosa
+fixtures/ciudades.json
+
 *.py[cod]
 
 # C extensions
