@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
+
+"""
+fast and dirty scrapping para cargar datos de
+sucursales de supermercados de argentina
+"""
+
 import re
+from django.db import IntegrityError
 from django.db.models import Q
 from pyquery import PyQuery
 from cities_light.models import City
@@ -65,40 +72,78 @@ def import_coto():
                                       horarios=horarios, telefono=telefono, cadena=COTO)
 
 
-def importador_laanonima():
-    dir_pattern = re.compile(r'(?P<suc>Suc.*\: )?(?P<dir>.*),?.*\((?P<cp>\d+)\), (?P<ciu>.*), (?P<prov>.*)$')
+def importador_laanonima(url_id=None, start=1):
+    """
+    >>> importador_laanonima()
+    ...
+    157 La Anónima (Dirección:Hector Gil n° 64)
+    158 La Anónima ()
+    Revisar: [119, 123, 134, 136, 137, 138, 139, 140, 147, 148, 150, 151,
+              152, 153, 154, 155, 156, 157]
+
+    >>> Cadena.objects.all()[7].sucursales.all().count()
+    132
+    """
+
+    patron1 = re.compile(r'(?P<suc>Suc.*\: )?(?P<dir>.*),?.*\((?P<cp>\d+)\), (?P<ciu>.*),?(?P<prov> .*)?$')
+    patron2 = re.compile(r'(Suc.*\: )?(.*), (.*), (.*)$')
     URL_BASE = 'http://www.laanonima.com.ar/sucursales/sucursal.php?id='
     LA_ANONIMA = Cadena.objects.get(nombre=u"La Anónima")
+    normalize_ciudad = {156: 'Perito Moreno', 153: 'Río Colorado'}
 
-    for i in range(1, 159):
-        url = URL_BASE + str(i)
+
+    def scrap(url_id):
+        revisar = False
+        url = URL_BASE + str(url_id)
         pq = PyQuery(url)
         nombre = pq('td.titulos').eq(0).text().strip()
         if not nombre:
-            continue
+            return
         descripcion = pq('td.descipciones').eq(1).text()
-        if 'Superquik' in descripcion or 'Quick' in descripcion:
-            continue
+        if any(k in descripcion.lower() for k in ['quick', 'transferencia']):
+            return
         try:
-            horarios = re.search(r'atenci\xf3n: (.*) \xc1rea', descripcion).groups()[0]
+            horarios = re.search(r'atenci\xf3n: (.*) [\xc1A]rea', descripcion).groups()[0]
         except (AttributeError, IndexError):
             horarios = ''
         direccion = pq('td.descipciones').eq(2).text()
 
         try:
-            _, direccion, cp, ciudad, provincia = dir_pattern.match(direccion).groups()
+            _, direccion, cp, ciudad, provincia = patron1.match(direccion).groups()
         except (TypeError, AttributeError):
-            cp = None
-            ciudad = 'Río Gallegos'     # default
-            print 'Fallo: ', url
+            try:
+                _, direccion, ciudad, provincia = patron2.match(direccion).groups()
+                cp = None
+            except (TypeError, AttributeError):
+                cp = None
+                direccion = direccion.split(',')[0]
+                ciudad = normalize_ciudad.get(int(url_id), 'Río Gallegos')     # default
+                revisar = True
+        direccion = direccion.strip().replace('í a ', 'ía ')    # common fix
+        if direccion and direccion[-1] == ',':
+            direccion = direccion[:-1]
 
-        direccion = direccion[:-2]
-        ciudad = buscar_ciudad()
+        ciudad = buscar_ciudad(ciudad.strip(), 'Río Gallegos')
 
         telefono = pq('td.descipciones').eq(3).text()
-        print Sucursal.objects.create(nombre=nombre, ciudad=ciudad, direccion=direccion,
-                               horarios=horarios, telefono=telefono, cadena=LA_ANONIMA,
-                               cp=cp)
+        try:
+            print url_id, Sucursal.objects.create(nombre=nombre, ciudad=ciudad, direccion=direccion,
+                                   horarios=horarios, telefono=telefono, cadena=LA_ANONIMA,
+                                   cp=cp)
+        except IntegrityError as e:
+            print 'Fallo en ', url
+            print '    ', e
+            revisar = True
+        return revisar
+
+    if url_id:
+        scrap(url_id)
+    else:
+        revisar = []
+        for i in range(start, 159):
+            if scrap(i):
+                revisar.append(i)
+        print "Revisar:", revisar
 
 if __name__ == '__main__':
     importador_laanonima()
