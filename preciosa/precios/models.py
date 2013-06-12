@@ -88,32 +88,12 @@ class EmpresaFabricante(AbstractEmpresa):
     pass
 
 
-class Ciudad(models.Model):
-    PROVINCIAS = Choices('Buenos Aires', 'Catamarca', 'Chaco', 'Chubut',
-                         'Ciudad Autónoma de Buenos Aires', 'Córdoba',
-                         'Corrientes', 'Entre Ríos', 'Formosa', 'Jujuy', 'La Pampa',
-                         'La Rioja', 'Mendoza', 'Misiones', 'Neuquén', 'Río Negro',
-                         'Salta', 'San Juan', 'San Luis', 'Santa Cruz', 'Santa Fe',
-                         'Santiago del Estero',
-                         'Tierra del Fuego, Antártida e Islas del Atlántico Sur',
-                         'Tucumán')
-
-    nombre = models.CharField(max_length=100)
-    provincia = models.CharField(max_length=100, choices=PROVINCIAS)
-
-    def __unicode__(self):
-        return self.nombre + ', ' + self.provincia
-
-    class Meta:
-        unique_together = (('nombre', 'provincia'))
-
-
 class Sucursal(models.Model):
     nombre = models.CharField(max_length=100, null=True, blank=True,
                               help_text="Denominación común. Ej: Jumbo de Alberdi")
     direccion = models.CharField(max_length=120)
     # ciudad deberia ser estandarizado, usando algo como django-cities-light
-    ciudad = models.ForeignKey('Ciudad')
+    ciudad = models.ForeignKey('cities_light.City')
     cp = models.CharField(max_length=100, null=True, blank=True)
     telefono = models.CharField(max_length=100, null=True, blank=True)
     horarios = models.TextField(null=True, blank=True)
